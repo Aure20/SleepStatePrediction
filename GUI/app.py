@@ -1,21 +1,18 @@
 from tkinter import *
-from tkinter import filedialog
 import pandas as pd
-from datetime import timedelta, datetime
+from datetime import timedelta
 import lightgbm as lgb
 import numpy as np
+import matplotlib
+matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
  
-bst = lgb.Booster(model_file = '25M.txt')
-day_text = "Predicting for the day:"
-onset_text = "Onset event recorder at:"
-wakeup_text = "Wakeup event recorder at:"
-
+bst = lgb.Booster(model_file='GUI/25M.txt')
 
 def open_file():
-    df = pd.read_parquet('test_app.parquet')
+    df = pd.read_parquet('GUI/test_app.parquet')
     # Do something with the DataFrame, e.g., store it in a global variable for later use
     select_user(df)
 
@@ -94,15 +91,18 @@ def predict_time_window(canvas, ax, df, start, end):
 
 def get_predictions(preds, preds_proba):
     for event in ['onset', 'wakeup']:
-        step = 100
+        step = 50
         indices = list(range(step, len(preds)-step))
         column_difference = []
         for index in indices:
-            column_difference.append(np.mean(preds_proba[index:index+step, 0] + preds_proba[index-step:index, 1] - preds_proba[index-step//2:index+step//2, 0]))
+            if event == 'onset':
+                column_difference.append(np.mean(preds_proba[index:index+step, 0] + preds_proba[index-step:index, 1]))
+            else:
+                column_difference.append(np.mean(preds_proba[index-step:index, 0] + preds_proba[index:index+step, 1]))
         if event == 'onset': 
             onset_event = indices[np.argmax(column_difference)] 
         else:
-            wake_event = indices[np.argmin(column_difference)]
+            wake_event = indices[np.argmax(column_difference)]
 
     return onset_event, wake_event
 
@@ -134,13 +134,14 @@ time_windows_menu = OptionMenu(root, var_day, "No File Selected")
 time_windows_menu.grid(row=2,column=0,padx=10,pady=pady)
 
 # Elements on the top right corner
-day = Label(root, text="Top Right Label 1:") 
+day = Label(root, text="Predicting for the day:") 
 day.grid(row=0,column=1,padx=10,pady=pady)
 
-wakeup = Label(root, text="Top Right Label 2:") 
-wakeup.grid(row=1,column=1,padx=10,pady=pady)
+wakeup = Label(root, text="Wakeup event recorder at:") 
+wakeup.grid(row=2,column=1,padx=10,pady=pady)
 
-onset = Label(root, text="Top Right Label 2:") 
-onset.grid(row=2,column=1,padx=10,pady=pady)
+onset = Label(root, text="Onset event recorder at:") 
+onset.grid(row=1,column=1,padx=10,pady=pady)
 
 root.mainloop()
+
